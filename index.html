@@ -8,7 +8,7 @@
 <style>
 body {
   font-family: 'Pretendard', sans-serif;
-  background-color: #fafafa;
+  background: #fafafa;
   color: #222;
   margin: 0;
   text-align: center;
@@ -51,14 +51,13 @@ button {
 }
 button:hover { background: #111; transform: translateY(-2px); }
 #game { display: none; flex-direction: column; align-items: center; margin-top: 10px; }
-
 .card {
   perspective: 1000px;
   width: 320px;
   height: 480px;
   margin: 20px auto;
   position: relative;
-  background: white;
+  background: white url('https://readmestudio.github.io/family-card-game/assets/card-bg.png') center/cover no-repeat;
   border-radius: 20px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.1);
 }
@@ -70,78 +69,62 @@ button:hover { background: #111; transform: translateY(-2px); }
 }
 .flipped .card-inner { transform: rotateY(180deg); }
 .card-front, .card-back {
-  position: absolute;
-  width: 100%; height: 100%;
+  position: absolute; width: 100%; height: 100%;
   backface-visibility: hidden;
-  border-radius: 20px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  background: white;
+  border-radius: 20px; border: 2px solid #333;
+  display: flex; flex-direction: column;
+  justify-content: center; align-items: center;
+  background: rgba(255,255,255,0.96);
 }
 .card-front {
-  background: white url('assets/heart.png') center 80px/80px no-repeat;
+  background: white url('https://readmestudio.github.io/family-card-game/assets/heart.png') center 100px/80px no-repeat;
+  font-size: 18px; color: #444;
 }
 .card-back {
   transform: rotateY(180deg);
-  background: white url('assets/heart.png') center top 30px/70px no-repeat;
+  background: rgba(255,255,255,0.95);
   padding: 24px;
   box-sizing: border-box;
+  overflow-y: auto;
 }
-.question-main {
-  font-size: 18px;
-  line-height: 1.5;
-  white-space: pre-line;
-  margin-top: 150px;
-}
-.sub-question {
-  color: #777;
-  font-size: 14px;
-  margin-top: 8px;
-  white-space: pre-line;
-}
-.buttons {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 6px;
-}
+.question-main { font-size: 18px; line-height: 1.5; white-space: pre-line; margin-top: 20px;}
+.sub-question { color: #777; font-size: 14px; margin-top: 10px; white-space: pre-line; }
+.buttons { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
 #status { font-weight: 600; margin-bottom: 8px; }
-
 @media (max-width: 480px) {
-  body { padding: 10px; }
-  .card { width: 90%; height: 400px; }
-  .question-main { font-size: 16px; margin-top: 120px; }
-  .sub-question { font-size: 13px; }
+  .card { width: 90vw; height: 70vh; }
   h1 { font-size: 22px; }
+  .question-main { font-size: 16px; }
+  .sub-question { font-size: 13px; }
 }
 </style>
 </head>
 <body>
 <h1>우리 가족 대화 카드게임 💚</h1>
-
 <div id="setup">
-  <p>참가 인원을 입력해주세요</p>
-  <input type="number" id="playerCount" min="1" max="20" placeholder="예: 4" />
-  <button onclick="startGame()">다음 ▶</button>
+  <p>참가자 이름을 쉼표로 구분해서 입력하세요</p>
+  <input type="text" id="names" placeholder="예: 아빠, 엄마, 아들" />
+  <br>
+  <button onclick="startGame()">시작하기 ▶️</button>
 </div>
 
 <div id="game">
+  <div id="status"></div>
   <div id="announcement"></div>
   <div class="card" id="card">
-    <div class="card-inner">
-      <div class="card-front"></div>
+    <div class="card-inner" id="card-inner">
+      <div class="card-front">
+        <p>질문을 뽑아 주세요 💬</p>
+      </div>
       <div class="card-back">
-        <div class="question-main" id="question"></div>
-        <div class="sub-question" id="subQuestion"></div>
+        <div class="question-main" id="main-question"></div>
+        <div class="sub-question" id="sub-question"></div>
       </div>
     </div>
   </div>
-
   <div class="buttons">
     <button onclick="drawQuestion()">질문 뽑기 🎴</button>
-    <button onclick="nextPlayer()">다음 사람 ▶</button>
+    <button onclick="nextPerson()">다음 사람 ▶️</button>
     <button onclick="endRound()">마무리하기 💫</button>
   </div>
 </div>
@@ -250,53 +233,65 @@ const questions = [
 ["오늘 이 순간, 가족에게 한마디 한다면?","그 말을 꼭 전하고 싶은 이유는?"]
 ];
 
-const finalQuestion = questions[99];
-
-let playerCount = 0;
+let players = [];
 let currentPlayer = 0;
-let usedQuestions = [];
+let usedQuestions = new Set();
 
 function startGame() {
-  playerCount = parseInt(document.getElementById("playerCount").value);
-  if (!playerCount || playerCount < 1)
-    return alert("인원을 입력해주세요!");
+  const input = document.getElementById("names").value.trim();
+  if (!input) return alert("참가자 이름을 입력해주세요!");
+  players = input.split(",").map(n => n.trim()).filter(n => n);
+  if (players.length === 0) return alert("한 명 이상 입력해야 합니다.");
   document.getElementById("setup").style.display = "none";
   document.getElementById("game").style.display = "flex";
-  showAnnouncement();
+  showCurrentPlayer();
 }
 
-function showAnnouncement() {
-  const a = document.getElementById("announcement");
-  a.textContent = `💚 ${currentPlayer + 1}번 참가자 차례입니다!`;
-  a.style.display = "block";
+function showCurrentPlayer() {
+  const status = document.getElementById("status");
+  status.innerText = `💚 ${players[currentPlayer]} 님 차례입니다!`;
 }
 
 function drawQuestion() {
   const card = document.getElementById("card");
   card.classList.add("flipped");
-  setTimeout(() => {
-    let available = questions.slice(0,99).filter(q => !usedQuestions.includes(q));
-    if (available.length === 0) usedQuestions = [], available = questions.slice(0,99);
-    const selected = available[Math.floor(Math.random() * available.length)];
-    usedQuestions.push(selected);
-    document.getElementById("question").textContent = selected[0];
-    document.getElementById("subQuestion").textContent = selected[1];
-  }, 400);
+  const main = document.getElementById("main-question");
+  const sub = document.getElementById("sub-question");
+
+  if (usedQuestions.size >= 99) usedQuestions.clear();
+  let index;
+  do {
+    index = Math.floor(Math.random() * 99);
+  } while (usedQuestions.has(index));
+  usedQuestions.add(index);
+
+  const q = questions[index];
+  main.innerText = q[0];
+  sub.innerText = q[1];
+  document.getElementById("announcement").style.display = "none";
 }
 
-function nextPlayer() {
-  currentPlayer = (currentPlayer + 1) % playerCount;
+function nextPerson() {
   document.getElementById("card").classList.remove("flipped");
-  showAnnouncement();
+  currentPlayer = (currentPlayer + 1) % players.length;
+  showCurrentPlayer();
+  document.getElementById("announcement").style.display = "none";
 }
 
 function endRound() {
+  const main = document.getElementById("main-question");
+  const sub = document.getElementById("sub-question");
   const card = document.getElementById("card");
   card.classList.add("flipped");
-  const a = document.getElementById("announcement");
-  a.textContent = "💫 이 질문은 모든 참가자가 돌아가며 대답해 주세요 💫";
-  document.getElementById("question").textContent = finalQuestion[0];
-  document.getElementById("subQuestion").textContent = finalQuestion[1];
+
+  const finalQ = questions[99];
+  main.innerText = finalQ[0];
+  sub.innerText = finalQ[1];
+
+  document.getElementById("status").innerText = "";
+  const ann = document.getElementById("announcement");
+  ann.innerText = "💫 이 질문은 모든 참가자가 돌아가며 대답해 주세요 💫";
+  ann.style.display = "block";
 }
 </script>
 </body>
