@@ -4,7 +4,6 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>우리 가족 대화 카드게임 💚</title>
-<base href="https://readmestudio.github.io/family-card-game/">
 <style>
 body {
   font-family: 'Pretendard', sans-serif;
@@ -51,15 +50,18 @@ button {
 }
 button:hover { background: #111; transform: translateY(-2px); }
 #game { display: none; flex-direction: column; align-items: center; margin-top: 10px; }
+
 .card {
   perspective: 1000px;
   width: 320px;
   height: 480px;
   margin: 20px auto;
   position: relative;
-  background: white url('https://readmestudio.github.io/family-card-game/assets/card-bg.png') center/cover no-repeat;
   border-radius: 20px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+  background: linear-gradient(rgba(255,255,255,0.95), rgba(255,255,255,0.95)),
+    url('https://readmestudio.github.io/family-card-game/assets/card-bg.png')
+    center/cover no-repeat;
 }
 .card-inner {
   width: 100%; height: 100%;
@@ -77,12 +79,13 @@ button:hover { background: #111; transform: translateY(-2px); }
   background: rgba(255,255,255,0.96);
 }
 .card-front {
-  background: white url('https://readmestudio.github.io/family-card-game/assets/heart.png') center 100px/80px no-repeat;
+  background: linear-gradient(rgba(255,255,255,0.95), rgba(255,255,255,0.95)),
+    url('https://readmestudio.github.io/family-card-game/assets/heart.png')
+    center 100px/80px no-repeat;
   font-size: 18px; color: #444;
 }
 .card-back {
   transform: rotateY(180deg);
-  background: rgba(255,255,255,0.95);
   padding: 24px;
   box-sizing: border-box;
   overflow-y: auto;
